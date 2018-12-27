@@ -1,7 +1,6 @@
 use crate::config::NetworkConfig;
 use crate::error::{NetworkError, NetworkErrorKind, NetworkResult};
-use crate::events::Event;
-use crate::net::connection::{ConnectionPool, TimeoutThread};
+use crate::net::connection::{ClientStateChange, ConnectionPool, TimeoutThread};
 use crate::net::link_conditioner::LinkConditioner;
 use crate::packet::Packet;
 
@@ -18,7 +17,7 @@ pub struct UdpSocket {
     link_conditioner: Option<LinkConditioner>,
     _timeout_thread: TimeoutThread,
     timeout_error_channel: Receiver<NetworkError>,
-    events: (Sender<Event>, Receiver<Event>),
+    events: (Sender<ClientStateChange>, Receiver<ClientStateChange>),
     connections: Arc<ConnectionPool>,
 }
 
@@ -121,7 +120,7 @@ impl UdpSocket {
     }
 
     /// This will return a `Vec` of events for processing.
-    pub fn events(&self) -> Vec<Event> {
+    pub fn events(&self) -> Vec<ClientStateChange> {
         let (_, ref rx) = self.events;
 
         rx.try_iter().collect()
@@ -129,7 +128,7 @@ impl UdpSocket {
 
     /// Wrapper around getting the events sender
     /// This will cause a clone to be done, but this is low cost
-    pub fn get_events_sender(&self) -> Sender<Event> {
+    pub fn get_events_sender(&self) -> Sender<ClientStateChange> {
         self.events.0.clone()
     }
 }

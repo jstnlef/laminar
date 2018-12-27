@@ -1,9 +1,11 @@
 mod connection_pool;
+mod events;
 mod quality;
 mod timeout_thread;
 mod virtual_connection;
 
 pub use self::connection_pool::ConnectionPool;
+pub use self::events::ClientStateChange;
 pub use self::quality::{NetworkQuality, RttMeasurer};
 pub use self::timeout_thread::TimeoutThread;
 pub use self::virtual_connection::VirtualConnection;

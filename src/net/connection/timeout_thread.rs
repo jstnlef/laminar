@@ -1,6 +1,5 @@
-use super::ConnectionPool;
+use super::{ClientStateChange, ConnectionPool};
 use crate::error::{NetworkError, NetworkErrorKind, NetworkResult};
-use crate::events::Event;
 use log::error;
 
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -24,13 +23,13 @@ pub struct TimeoutThread {
     shutdown_signal: Arc<AtomicBool>,
     poll_interval: Duration,
     timeout_check_thread: Option<thread::JoinHandle<()>>,
-    sender: Sender<Event>,
+    sender: Sender<ClientStateChange>,
     connection_pool: Arc<ConnectionPool>,
 }
 
 impl TimeoutThread {
     pub fn new(
-        events_sender: Sender<Event>,
+        events_sender: Sender<ClientStateChange>,
         connection_pool: Arc<ConnectionPool>,
     ) -> TimeoutThread {
         let poll_interval = Duration::from_secs(TIMEOUT_POLL_INTERVAL);

@@ -1,20 +1,20 @@
-use std::sync::{Arc, RwLock};
+use std::net::SocketAddr;
 
-use crate::net::{NetworkQuality, VirtualConnection};
+use crate::net::NetworkQuality;
 
 /// Events that are generated in response to a change in state of the connected client
-pub enum Event {
+pub enum ClientStateChange {
     /// A new client connects. Clients are uniquely identified by the ip:port combination at this layer.
-    Connected(Arc<RwLock<VirtualConnection>>),
+    Connected(SocketAddr),
     /// A client disconnects. This can be generated from the server-side intentionally disconnecting a client,
     /// or it could be from the client disconnecting.
-    Disconnected(Arc<RwLock<VirtualConnection>>),
+    Disconnected(SocketAddr),
     /// This is generated if the server has not seen traffic from a client for a configurable amount of time.
-    TimedOut(Arc<RwLock<VirtualConnection>>),
+    TimedOut(SocketAddr),
     /// This is generated when there is a change in the connection quality of a client.
     QualityChange {
         /// Connection whose quality changed
-        conn: Arc<RwLock<VirtualConnection>>,
+        conn: SocketAddr,
         /// Previous quality
         from: NetworkQuality,
         /// New quality
@@ -24,11 +24,8 @@ pub enum Event {
 
 #[cfg(test)]
 mod test {
-    use super::Event;
-    use crate::config::NetworkConfig;
-    use crate::net::VirtualConnection;
+    use super::ClientStateChange;
     use std::net::ToSocketAddrs;
-    use std::sync::{Arc, RwLock};
 
     static TEST_HOST_IP: &'static str = "127.0.0.1";
     static TEST_PORT: &'static str = "20000";
@@ -37,11 +34,6 @@ mod test {
     fn test_create_event() {
         let addr = format!("{}:{}", TEST_HOST_IP, TEST_PORT).to_socket_addrs();
         let mut addr = addr.unwrap();
-
-        let test_conn = Arc::new(RwLock::new(VirtualConnection::new(
-            addr.next().unwrap(),
-            Arc::new(NetworkConfig::default()),
-        )));
-        let _ = Event::Connected(test_conn);
+        let _ = ClientStateChange::Connected(addr.next().unwrap());
     }
 }

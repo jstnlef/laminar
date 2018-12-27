@@ -1,7 +1,6 @@
-use super::{Connection, ConnectionsCollection, VirtualConnection};
+use super::{ClientStateChange, Connection, ConnectionsCollection, VirtualConnection};
 use crate::config::NetworkConfig;
 use crate::error::{NetworkError, NetworkErrorKind, NetworkResult};
-use crate::events::Event;
 use log::{error, info};
 use std::collections::HashMap;
 use std::error::Error;
@@ -76,7 +75,7 @@ impl ConnectionPool {
     pub fn check_for_timeouts(
         &self,
         sleepy_time: Duration,
-        events_sender: &Sender<Event>,
+        events_sender: &Sender<ClientStateChange>,
     ) -> NetworkResult<Vec<SocketAddr>> {
         let mut timed_out_clients: Vec<SocketAddr> = Vec::new();
 
@@ -86,7 +85,7 @@ impl ConnectionPool {
                     if let Ok(connection) = value.read() {
                         if connection.last_heard() >= sleepy_time {
                             timed_out_clients.push(key.clone());
-                            let event = Event::TimedOut(value.clone());
+                            let event = ClientStateChange::TimedOut(key.clone());
 
                             events_sender
                                 .send(event)
@@ -125,9 +124,8 @@ mod tests {
     use std::thread;
     use std::time::Duration;
 
-    use super::{Arc, ConnectionPool};
+    use super::{Arc, ClientStateChange, ConnectionPool};
     use crate::config::NetworkConfig;
-    use crate::events::Event;
 
     #[test]
     fn connection_timed_out() {
@@ -154,7 +152,7 @@ mod tests {
         let mut events_received = 0;
         while let Ok(event) = rx.try_recv() {
             match event {
-                Event::TimedOut(_) => {
+                ClientStateChange::TimedOut(_) => {
                     events_received += 1;
                 }
                 _ => {}
