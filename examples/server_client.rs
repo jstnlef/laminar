@@ -5,7 +5,7 @@ use std::io::stdin;
 
 use laminar::{config::NetworkConfig, error::Result, net::UdpSocket, Packet};
 
-const SERVER: &str = "localhost:12351";
+const SERVER: &str = "127.0.0.1:12351";
 
 fn server() -> Result<()> {
     let mut socket = UdpSocket::bind(SERVER, NetworkConfig::default())?;
@@ -39,7 +39,7 @@ fn server() -> Result<()> {
 }
 
 fn client() -> Result<()> {
-    let mut socket = UdpSocket::bind("localhost:12352", NetworkConfig::default())?;
+    let mut socket = UdpSocket::bind("127.0.0.1:12352", NetworkConfig::default())?;
 
     let server = SERVER.parse()?;
 
