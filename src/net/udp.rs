@@ -6,7 +6,7 @@ use crate::packet::Packet;
 
 use std::error::Error;
 use std::net::{self, SocketAddr, ToSocketAddrs};
-use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::mpsc::{self, Receiver};
 use std::sync::Arc;
 
 /// Represents an <ip>:<port> combination listening for UDP traffic
@@ -16,8 +16,8 @@ pub struct UdpSocket {
     _config: Arc<NetworkConfig>,
     link_conditioner: Option<LinkConditioner>,
     _timeout_thread: TimeoutThread,
-    timeout_error_channel: Receiver<NetworkError>,
-    events: (Sender<ClientStateChange>, Receiver<ClientStateChange>),
+    timeout_error_receiver: Receiver<NetworkError>,
+    state_change_receiver: Receiver<ClientStateChange>,
     connections: Arc<ActiveConnections>,
 }
 
@@ -27,11 +27,11 @@ impl UdpSocket {
         let socket = net::UdpSocket::bind(addr)?;
 
         let config = Arc::new(config);
-        let (tx, rx) = mpsc::channel();
+        let (state_change_sender, state_change_receiver) = mpsc::channel();
 
-        let connection_pool = Arc::new(ActiveConnections::new(config.clone()));
+        let connections = Arc::new(ActiveConnections::new(config.clone()));
 
-        let mut timeout_thread = TimeoutThread::new(tx.clone(), connection_pool.clone());
+        let mut timeout_thread = TimeoutThread::new(state_change_sender.clone(), connections.clone());
         let timeout_error_channel = timeout_thread.start()?;
 
         Ok(UdpSocket {
@@ -39,10 +39,10 @@ impl UdpSocket {
             recv_buffer: vec![0; config.receive_buffer_max_size],
             _config: config,
             link_conditioner: None,
-            connections: connection_pool,
             _timeout_thread: timeout_thread,
-            timeout_error_channel,
-            events: (tx, rx),
+            timeout_error_receiver: timeout_error_channel,
+            state_change_receiver,
+            connections
         })
     }
 
@@ -53,7 +53,7 @@ impl UdpSocket {
         if len > 0 {
             let packet = &self.recv_buffer[..len];
 
-            if let Ok(error) = self.timeout_error_channel.try_recv() {
+            if let Ok(error) = self.timeout_error_receiver.try_recv() {
                 // we could recover from error here.
                 return Err(error);
             }
@@ -121,14 +121,6 @@ impl UdpSocket {
 
     /// This will return a `Vec` of events for processing.
     pub fn events(&self) -> Vec<ClientStateChange> {
-        let (_, ref rx) = self.events;
-
-        rx.try_iter().collect()
-    }
-
-    /// Wrapper around getting the events sender
-    /// This will cause a clone to be done, but this is low cost
-    pub fn get_events_sender(&self) -> Sender<ClientStateChange> {
-        self.events.0.clone()
+        self.state_change_receiver.try_iter().collect()
     }
 }
