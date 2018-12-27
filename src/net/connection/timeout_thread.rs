@@ -1,4 +1,4 @@
-use super::{ClientStateChange, ConnectionPool};
+use super::{ClientStateChange, ActiveConnections};
 use crate::error::{NetworkError, NetworkErrorKind, NetworkResult};
 use log::error;
 
@@ -24,13 +24,13 @@ pub struct TimeoutThread {
     poll_interval: Duration,
     timeout_check_thread: Option<thread::JoinHandle<()>>,
     sender: Sender<ClientStateChange>,
-    connection_pool: Arc<ConnectionPool>,
+    connection_pool: Arc<ActiveConnections>,
 }
 
 impl TimeoutThread {
     pub fn new(
         events_sender: Sender<ClientStateChange>,
-        connection_pool: Arc<ConnectionPool>,
+        connection_pool: Arc<ActiveConnections>,
     ) -> TimeoutThread {
         let poll_interval = Duration::from_secs(TIMEOUT_POLL_INTERVAL);
 

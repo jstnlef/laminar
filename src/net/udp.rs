@@ -1,6 +1,6 @@
 use crate::config::NetworkConfig;
 use crate::error::{NetworkError, NetworkErrorKind, NetworkResult};
-use crate::net::connection::{ClientStateChange, ConnectionPool, TimeoutThread};
+use crate::net::connection::{ClientStateChange, ActiveConnections, TimeoutThread};
 use crate::net::link_conditioner::LinkConditioner;
 use crate::packet::Packet;
 
@@ -18,7 +18,7 @@ pub struct UdpSocket {
     _timeout_thread: TimeoutThread,
     timeout_error_channel: Receiver<NetworkError>,
     events: (Sender<ClientStateChange>, Receiver<ClientStateChange>),
-    connections: Arc<ConnectionPool>,
+    connections: Arc<ActiveConnections>,
 }
 
 impl UdpSocket {
@@ -29,7 +29,7 @@ impl UdpSocket {
         let config = Arc::new(config);
         let (tx, rx) = mpsc::channel();
 
-        let connection_pool = Arc::new(ConnectionPool::new(config.clone()));
+        let connection_pool = Arc::new(ActiveConnections::new(config.clone()));
 
         let mut timeout_thread = TimeoutThread::new(tx.clone(), connection_pool.clone());
         let timeout_error_channel = timeout_thread.start()?;

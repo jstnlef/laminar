@@ -10,14 +10,14 @@ use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 /// This is a pool of virtual connections (connected) over UDP.
-pub struct ConnectionPool {
+pub struct ActiveConnections {
     connections: ConnectionsCollection,
     config: Arc<NetworkConfig>,
 }
 
-impl ConnectionPool {
-    pub fn new(config: Arc<NetworkConfig>) -> ConnectionPool {
-        ConnectionPool {
+impl ActiveConnections {
+    pub fn new(config: Arc<NetworkConfig>) -> ActiveConnections {
+        ActiveConnections {
             connections: Arc::new(RwLock::new(HashMap::new())),
             config,
         }
@@ -124,12 +124,12 @@ mod tests {
     use std::thread;
     use std::time::Duration;
 
-    use super::{Arc, ClientStateChange, ConnectionPool};
+    use super::{Arc, ClientStateChange, ActiveConnections};
     use crate::config::NetworkConfig;
 
     #[test]
     fn connection_timed_out() {
-        let connections = Arc::new(ConnectionPool::new(Arc::new(NetworkConfig::default())));
+        let connections = Arc::new(ActiveConnections::new(Arc::new(NetworkConfig::default())));
         let (tx, rx) = channel();
 
         // add 10 clients
@@ -165,7 +165,7 @@ mod tests {
 
     #[test]
     fn insert_connection() {
-        let connections = ConnectionPool::new(Arc::new(NetworkConfig::default()));
+        let connections = ActiveConnections::new(Arc::new(NetworkConfig::default()));
 
         let addr = &("127.0.0.1:12345".parse().unwrap());
         connections.get_connection_or_insert(addr).unwrap();
@@ -174,7 +174,7 @@ mod tests {
 
     #[test]
     fn insert_existing_connection() {
-        let connections = ConnectionPool::new(Arc::new(NetworkConfig::default()));
+        let connections = ActiveConnections::new(Arc::new(NetworkConfig::default()));
 
         let addr = &("127.0.0.1:12345".parse().unwrap());
         connections.get_connection_or_insert(addr).unwrap();
@@ -185,7 +185,7 @@ mod tests {
 
     #[test]
     fn removes_connection() {
-        let connections = ConnectionPool::new(Arc::new(NetworkConfig::default()));
+        let connections = ActiveConnections::new(Arc::new(NetworkConfig::default()));
 
         let addr = &("127.0.0.1:12345".parse().unwrap());
         connections.get_connection_or_insert(addr).unwrap();
@@ -196,7 +196,7 @@ mod tests {
 
     #[test]
     fn remove_not_existing_connection() {
-        let connections = ConnectionPool::new(Arc::new(NetworkConfig::default()));
+        let connections = ActiveConnections::new(Arc::new(NetworkConfig::default()));
 
         let addr = &("127.0.0.1:12345".parse().unwrap());
         connections.remove_connection(addr).unwrap();
